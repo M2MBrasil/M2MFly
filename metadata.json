@@ -1,0 +1,6 @@
+{
+  "name": "M2MFly",
+  "description": "Simulador de Crash Game M2MFly com física de voo, Provably Fair, gradiente azul e botão unificado de aposta e retirada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
