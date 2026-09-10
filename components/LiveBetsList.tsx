@@ -9,7 +9,8 @@ interface LiveBetsListProps {
   livePlayers: LivePlayer[];
   gameState: GameState;
   currentMultiplier: number;
-  onSelectRound: (item: RoundHistoryItem) => void;
+  onSelectRound?: (item: RoundHistoryItem) => void;
+  isAdmin?: boolean;
 }
 
 export const LiveBetsList: React.FC<LiveBetsListProps> = ({
@@ -18,6 +19,7 @@ export const LiveBetsList: React.FC<LiveBetsListProps> = ({
   gameState,
   currentMultiplier,
   onSelectRound,
+  isAdmin = false,
 }) => {
   const [tab, setTab] = useState<'rounds' | 'live' | 'myBets'>('rounds');
 
@@ -97,8 +99,14 @@ export const LiveBetsList: React.FC<LiveBetsListProps> = ({
               history.map((item, idx) => (
                 <button
                   key={`round-list-${item.roundId}-${item.timestamp || idx}-${idx}`}
-                  onClick={() => onSelectRound(item)}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-blue-950/60 border border-transparent hover:border-blue-800/40 transition cursor-pointer group"
+                  onClick={() => {
+                    if (isAdmin && onSelectRound) {
+                      onSelectRound(item);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-transparent transition ${
+                    isAdmin ? 'hover:bg-blue-950/60 hover:border-blue-800/40 cursor-pointer group' : 'cursor-default'
+                  }`}
                 >
                   <span className="font-mono text-slate-400 group-hover:text-cyan-300">
                     #{item.roundId}

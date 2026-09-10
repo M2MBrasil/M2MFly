@@ -9,6 +9,8 @@ import { TopHistoryBar } from '@/components/TopHistoryBar';
 import { BettingPanel } from '@/components/BettingPanel';
 import { LiveBetsList } from '@/components/LiveBetsList';
 import { ProvablyFairModal } from '@/components/ProvablyFairModal';
+import { RechargeModal } from '@/components/RechargeModal';
+import { AdminModal } from '@/components/AdminModal';
 import {
   Volume2,
   VolumeX,
@@ -20,6 +22,8 @@ import {
   TrendingUp,
   Plane,
   RotateCcw,
+  KeyRound,
+  ShieldAlert,
 } from 'lucide-react';
 
 const INITIAL_BALANCE = 1000.0;
@@ -62,6 +66,9 @@ export default function M2MFlyPage() {
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
   const [selectedRoundForModal, setSelectedRoundForModal] = useState<ProvablyFairRound | null>(null);
   const [isPFModalOpen, setIsPFModalOpen] = useState<boolean>(false);
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState<boolean>(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
 
   // Toast / notification
   const [winNotification, setWinNotification] = useState<{ message: string; amount: number } | null>(null);
@@ -257,7 +264,10 @@ export default function M2MFlyPage() {
 
   // Handle placing a bet
   const handlePlaceBet = (panelIndex: 1 | 2, amount: number, autoCashout: number) => {
-    if (balance < amount) return;
+    if (balance <= 0 || balance < amount) {
+      setIsRechargeModalOpen(true);
+      return;
+    }
 
     soundManager.playClick();
     updateBalance(balance - amount);
@@ -436,6 +446,13 @@ export default function M2MFlyPage() {
           setTimeout(() => {
             prepareNextRound();
           }, 3000);
+
+          // If virtual balance dropped to 0, open recharge modal after crash
+          if (balanceRef.current <= 0) {
+            setTimeout(() => {
+              setIsRechargeModalOpen(true);
+            }, 1200);
+          }
         } else {
           // Keep flying
           setCurrentMultiplier(rawMultiplier);
@@ -500,9 +517,15 @@ export default function M2MFlyPage() {
     setIsMuted(muted);
   };
 
-  const addVirtualCredits = () => {
-    updateBalance(balance + 500);
+  const handleRechargeSuccess = (amount: number) => {
+    const newBal = balance + amount;
+    updateBalance(newBal);
     soundManager.playCashout();
+    setWinNotification({
+      message: `Recarga de R$ ${amount.toFixed(2)} liberada com sucesso!`,
+      amount,
+    });
+    setTimeout(() => setWinNotification(null), 3500);
   };
 
   return (
@@ -538,28 +561,55 @@ export default function M2MFlyPage() {
             {/* Balance Badge */}
             <div
               id="wallet-balance-badge"
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-900/90 border border-blue-900/60 shadow-inner"
+              className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-900/90 border shadow-inner transition-colors ${
+                balance <= 0
+                  ? 'border-amber-500/70 bg-amber-950/20'
+                  : 'border-blue-900/60'
+              }`}
             >
-              <Wallet className="w-4 h-4 text-cyan-400 shrink-0" />
+              <Wallet
+                className={`w-4 h-4 shrink-0 ${
+                  balance <= 0 ? 'text-amber-400' : 'text-cyan-400'
+                }`}
+              />
               <div className="flex flex-col text-left">
                 <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400">
                   Saldo Virtual
                 </span>
                 <span
                   suppressHydrationWarning
-                  className="font-mono font-black text-sm sm:text-base text-white tracking-tight"
+                  className={`font-mono font-black text-sm sm:text-base tracking-tight ${
+                    balance <= 0 ? 'text-amber-400' : 'text-white'
+                  }`}
                 >
                   R$ {balance.toFixed(2)}
                 </span>
               </div>
               <button
-                onClick={addVirtualCredits}
-                title="Adicionar R$ 500 em créditos virtuais"
-                className="ml-1 p-1 rounded-lg bg-blue-950 hover:bg-blue-900 text-cyan-300 border border-blue-800/40 transition cursor-pointer"
+                onClick={() => setIsRechargeModalOpen(true)}
+                id="btn-recharge-dialog"
+                title="Recarregar Saldo com Código de 4 Dígitos"
+                className={`ml-1 px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition cursor-pointer ${
+                  balance <= 0
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400 animate-pulse'
+                    : 'bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-600 hover:to-cyan-500 text-white border-blue-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                }`}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Recarregar</span>
               </button>
             </div>
+
+            {/* Admin Panel Button - Exclusive for administrator to generate codes */}
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              id="btn-admin-dialog"
+              title="Painel do Administrador (Gerador de Códigos de Recarga)"
+              className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-blue-900/90 via-blue-800/80 to-slate-900 hover:from-blue-800 hover:to-cyan-900 border border-blue-600/60 text-cyan-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(30,58,138,0.3)]"
+            >
+              <KeyRound className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-bold hidden sm:inline">Admin</span>
+            </button>
 
             {/* Audio Toggle */}
             <button
@@ -571,18 +621,21 @@ export default function M2MFlyPage() {
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
-            {/* Provably Fair Info Button */}
-            <button
-              onClick={() => {
-                setSelectedRoundForModal(currentProvablyFair);
-                setIsPFModalOpen(true);
-              }}
-              id="btn-provably-fair-dialog"
-              title="Auditoria Provably Fair"
-              className="p-2 rounded-xl bg-slate-900 hover:bg-blue-950 border border-blue-900/40 text-cyan-400 hover:text-white transition cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-            </button>
+            {/* Provably Fair Info Button - Exclusively for Admin */}
+            {isAdminAuthenticated && (
+              <button
+                onClick={() => {
+                  setSelectedRoundForModal(currentProvablyFair);
+                  setIsPFModalOpen(true);
+                }}
+                id="btn-provably-fair-dialog"
+                title="Auditoria Provably Fair (Apenas Administrador)"
+                className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-blue-900/90 to-indigo-900/90 hover:from-blue-800 hover:to-indigo-800 border border-cyan-400/60 text-cyan-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+              >
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold hidden sm:inline">Provably Fair</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -612,33 +665,24 @@ export default function M2MFlyPage() {
         <TopHistoryBar
           history={history}
           onSelectRound={(item) => {
-            setSelectedRoundForModal(item.provablyFair);
-            setIsPFModalOpen(true);
+            if (isAdminAuthenticated) {
+              setSelectedRoundForModal(item.provablyFair);
+              setIsPFModalOpen(true);
+            }
           }}
           onOpenProvablyFair={() => {
-            setSelectedRoundForModal(currentProvablyFair);
-            setIsPFModalOpen(true);
+            if (isAdminAuthenticated) {
+              setSelectedRoundForModal(currentProvablyFair);
+              setIsPFModalOpen(true);
+            }
           }}
+          isAdmin={isAdminAuthenticated}
         />
 
-        {/* Center Grid: Left Side History + Canvas & Status */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
-          {/* Left Column (1 col on desktop): History & Live bets */}
-          <div className="lg:col-span-1 h-[320px] lg:h-[460px]">
-            <LiveBetsList
-              history={history}
-              livePlayers={livePlayers}
-              gameState={gameState}
-              currentMultiplier={currentMultiplier}
-              onSelectRound={(item) => {
-                setSelectedRoundForModal(item.provablyFair);
-                setIsPFModalOpen(true);
-              }}
-            />
-          </div>
-
-          {/* Center Column (3 cols on desktop): Radar Flight Canvas & Status info */}
-          <div className="lg:col-span-3 flex flex-col gap-3">
+        {/* Center Grid: Left Side History + Flight Radar & Betting Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+          {/* Main Flight & Betting Section (3 cols on desktop, 1st on mobile): Radar Canvas + Quick Status + BETTING BUTTONS DIRECTLY BELOW! */}
+          <div className="lg:col-span-3 order-1 lg:order-2 flex flex-col gap-3">
             {/* The Radar Flight Canvas */}
             <GameCanvas
               gameState={gameState}
@@ -706,47 +750,76 @@ export default function M2MFlyPage() {
                 </button>
               </div>
             </div>
+
+            {/* BOTÕES DE APOSTAR POSICIONADOS EXATAMENTE ABAIXO DA TELA DO VOO DO AVIÃO */}
+            <div className={`grid grid-cols-1 ${enableSecondPanel ? 'md:grid-cols-2' : 'grid-cols-1'} gap-3 mt-0.5`}>
+              {/* Main Bet Panel 1 */}
+              <BettingPanel
+                panelIndex={1}
+                title="Aposta 1"
+                balance={balance}
+                gameState={gameState}
+                currentMultiplier={currentMultiplier}
+                currentBet={bet1}
+                onPlaceBet={handlePlaceBet}
+                onCancelBet={handleCancelBet}
+                onCashout={handleCashout}
+                onQueueNextBet={(idx, amt, auto) => {
+                  if (balance <= 0 || balance < amt) {
+                    setIsRechargeModalOpen(true);
+                    return;
+                  }
+                  setQueuedBet1({ amount: amt, autoCashout: auto });
+                }}
+                isNextBetQueued={Boolean(queuedBet1)}
+                onCancelQueuedBet={() => setQueuedBet1(null)}
+              />
+
+              {/* Optional Bet Panel 2 (just like standard Aviator) */}
+              {enableSecondPanel && (
+                <BettingPanel
+                  panelIndex={2}
+                  title="Aposta 2 (Simultânea)"
+                  balance={balance}
+                  gameState={gameState}
+                  currentMultiplier={currentMultiplier}
+                  currentBet={bet2}
+                  onPlaceBet={handlePlaceBet}
+                  onCancelBet={handleCancelBet}
+                  onCashout={handleCashout}
+                  onQueueNextBet={(idx, amt, auto) => {
+                    if (balance <= 0 || balance < amt) {
+                      setIsRechargeModalOpen(true);
+                      return;
+                    }
+                    setQueuedBet2({ amount: amt, autoCashout: auto });
+                  }}
+                  isNextBetQueued={Boolean(queuedBet2)}
+                  onCancelQueuedBet={() => setQueuedBet2(null)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Left Column on Desktop (order-2 on mobile): History & Live bets */}
+          <div className="lg:col-span-1 order-2 lg:order-1 h-[460px] lg:h-[640px]">
+            <LiveBetsList
+              history={history}
+              livePlayers={livePlayers}
+              gameState={gameState}
+              currentMultiplier={currentMultiplier}
+              onSelectRound={(item) => {
+                if (isAdminAuthenticated) {
+                  setSelectedRoundForModal(item.provablyFair);
+                  setIsPFModalOpen(true);
+                }
+              }}
+              isAdmin={isAdminAuthenticated}
+            />
           </div>
         </div>
 
-        {/* BOTTOM BETTING DESK */}
-        <div className={`grid grid-cols-1 ${enableSecondPanel ? 'md:grid-cols-2' : 'grid-cols-1'} gap-4`}>
-          {/* Main Bet Panel 1 */}
-          <BettingPanel
-            panelIndex={1}
-            title="Aposta 1"
-            balance={balance}
-            gameState={gameState}
-            currentMultiplier={currentMultiplier}
-            currentBet={bet1}
-            onPlaceBet={handlePlaceBet}
-            onCancelBet={handleCancelBet}
-            onCashout={handleCashout}
-            onQueueNextBet={(idx, amt, auto) => setQueuedBet1({ amount: amt, autoCashout: auto })}
-            isNextBetQueued={Boolean(queuedBet1)}
-            onCancelQueuedBet={() => setQueuedBet1(null)}
-          />
-
-          {/* Optional Bet Panel 2 (just like standard Aviator) */}
-          {enableSecondPanel && (
-            <BettingPanel
-              panelIndex={2}
-              title="Aposta 2 (Simultânea)"
-              balance={balance}
-              gameState={gameState}
-              currentMultiplier={currentMultiplier}
-              currentBet={bet2}
-              onPlaceBet={handlePlaceBet}
-              onCancelBet={handleCancelBet}
-              onCashout={handleCashout}
-              onQueueNextBet={(idx, amt, auto) => setQueuedBet2({ amount: amt, autoCashout: auto })}
-              isNextBetQueued={Boolean(queuedBet2)}
-              onCancelQueuedBet={() => setQueuedBet2(null)}
-            />
-          )}
-        </div>
-
-        {/* FOOTER & PROVABLY FAIR NOTICE */}
+        {/* FOOTER & INFO */}
         <footer className="mt-4 pt-4 border-t border-blue-900/30 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2 pb-6">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-400">M2MFly</span>
@@ -757,16 +830,18 @@ export default function M2MFlyPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-slate-400 italic">&ldquo;Disciplina faz você voar mais longe&rdquo;</span>
-            <button
-              onClick={() => {
-                setSelectedRoundForModal(currentProvablyFair);
-                setIsPFModalOpen(true);
-              }}
-              className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Verificar Sementes Criptográficas
-            </button>
+            {isAdminAuthenticated && (
+              <button
+                onClick={() => {
+                  setSelectedRoundForModal(currentProvablyFair);
+                  setIsPFModalOpen(true);
+                }}
+                className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Verificar Sementes (Admin)
+              </button>
+            )}
           </div>
         </footer>
       </div>
@@ -778,6 +853,31 @@ export default function M2MFlyPage() {
         currentRound={selectedRoundForModal || currentProvablyFair}
         clientSeed={clientSeed}
         onUpdateClientSeed={(newSeed) => setClientSeed(newSeed)}
+      />
+
+      {/* CLIENT RECHARGE MODAL (4-DIGIT CODE FOR +R$ 500) */}
+      <RechargeModal
+        isOpen={isRechargeModalOpen}
+        onClose={() => setIsRechargeModalOpen(false)}
+        onRechargeSuccess={handleRechargeSuccess}
+        currentBalance={balance}
+      />
+
+      {/* EXCLUSIVE ADMIN RECHARGE CODE GENERATOR SYSTEM */}
+      <AdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onUpdateBalanceDirect={(newBal) => {
+          updateBalance(newBal);
+        }}
+        onOpenProvablyFair={() => {
+          setSelectedRoundForModal(currentProvablyFair);
+          setIsPFModalOpen(true);
+        }}
+        onAdminAuthenticated={() => {
+          setIsAdminAuthenticated(true);
+        }}
+        currentBalance={balance}
       />
     </main>
   );

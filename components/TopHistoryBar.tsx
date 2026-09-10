@@ -6,14 +6,16 @@ import { ShieldCheck, History } from 'lucide-react';
 
 interface TopHistoryBarProps {
   history: RoundHistoryItem[];
-  onSelectRound: (item: RoundHistoryItem) => void;
-  onOpenProvablyFair: () => void;
+  onSelectRound?: (item: RoundHistoryItem) => void;
+  onOpenProvablyFair?: () => void;
+  isAdmin?: boolean;
 }
 
 export const TopHistoryBar: React.FC<TopHistoryBarProps> = ({
   history,
   onSelectRound,
   onOpenProvablyFair,
+  isAdmin = false,
 }) => {
   const getBadgeStyle = (multiplier: number) => {
     if (multiplier >= 10.0) {
@@ -41,9 +43,13 @@ export const TopHistoryBar: React.FC<TopHistoryBarProps> = ({
             <button
               key={`history-pill-${item.roundId}-${item.timestamp || idx}-${idx}`}
               id={`history-pill-${item.roundId}`}
-              onClick={() => onSelectRound(item)}
-              title={`Rodada #${item.roundId} - Clique para verificar Provably Fair`}
-              className={`px-2.5 py-1 rounded-full text-xs font-mono font-semibold transition-all hover:scale-105 border shrink-0 cursor-pointer ${getBadgeStyle(
+              onClick={() => {
+                if (isAdmin && onSelectRound) {
+                  onSelectRound(item);
+                }
+              }}
+              title={isAdmin ? `Rodada #${item.roundId} - Clique para auditoria Provably Fair` : `Rodada #${item.roundId} - Multiplicador ${item.crashMultiplier.toFixed(2)}x`}
+              className={`px-2.5 py-1 rounded-full text-xs font-mono font-semibold transition-all border shrink-0 ${isAdmin ? 'hover:scale-105 cursor-pointer' : 'cursor-default'} ${getBadgeStyle(
                 item.crashMultiplier
               )}`}
             >
@@ -53,14 +59,17 @@ export const TopHistoryBar: React.FC<TopHistoryBarProps> = ({
         )}
       </div>
 
-      <button
-        id="btn-provably-fair-header"
-        onClick={onOpenProvablyFair}
-        className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900/60 text-cyan-300 border border-blue-800/40 transition shrink-0 cursor-pointer hover:border-cyan-500/50"
-      >
-        <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-        <span className="hidden md:inline">Provably Fair</span>
-      </button>
+      {/* Provably Fair only shown for Admin */}
+      {isAdmin && onOpenProvablyFair && (
+        <button
+          id="btn-provably-fair-header"
+          onClick={onOpenProvablyFair}
+          className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900/60 text-cyan-300 border border-blue-800/40 transition shrink-0 cursor-pointer hover:border-cyan-500/50"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="hidden md:inline">Provably Fair</span>
+        </button>
+      )}
     </div>
   );
 };
