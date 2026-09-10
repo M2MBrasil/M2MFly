@@ -682,7 +682,8 @@ export default function M2MFlyPage() {
         {/* Center Grid: Left Side History + Flight Radar & Betting Controls */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
           {/* Main Flight & Betting Section (3 cols on desktop, 1st on mobile): Radar Canvas + Quick Status + BETTING BUTTONS DIRECTLY BELOW! */}
-          <div className="lg:col-span-3 order-1 lg:order-2 flex flex-col gap-3">
+          {/* Main Flight & Betting Section (3 cols on desktop, 1st on mobile): Radar Canvas + BETTING BUTTONS RIGHT BELOW IT! */}
+          <div className="lg:col-span-3 order-1 lg:order-2 flex flex-col gap-2.5 sm:gap-3">
             {/* The Radar Flight Canvas */}
             <GameCanvas
               gameState={gameState}
@@ -693,7 +694,56 @@ export default function M2MFlyPage() {
               flightDuration={flightDuration}
             />
 
-            {/* Quick Status Bar Under Canvas */}
+            {/* BOTÕES DE APOSTAR POSICIONADOS EXATAMENTE BEM ABAIXO DO QUADRO DO AVIÃO VOANDO */}
+            <div className={`grid grid-cols-1 ${enableSecondPanel ? 'md:grid-cols-2' : 'grid-cols-1'} gap-2.5 sm:gap-3`}>
+              {/* Main Bet Panel 1 */}
+              <BettingPanel
+                panelIndex={1}
+                title="Aposta 1"
+                balance={balance}
+                gameState={gameState}
+                currentMultiplier={currentMultiplier}
+                currentBet={bet1}
+                onPlaceBet={handlePlaceBet}
+                onCancelBet={handleCancelBet}
+                onCashout={handleCashout}
+                onQueueNextBet={(idx, amt, auto) => {
+                  if (balance <= 0 || balance < amt) {
+                    setIsRechargeModalOpen(true);
+                    return;
+                  }
+                  setQueuedBet1({ amount: amt, autoCashout: auto });
+                }}
+                isNextBetQueued={Boolean(queuedBet1)}
+                onCancelQueuedBet={() => setQueuedBet1(null)}
+              />
+
+              {/* Optional Bet Panel 2 (just like standard Aviator) */}
+              {enableSecondPanel && (
+                <BettingPanel
+                  panelIndex={2}
+                  title="Aposta 2 (Simultânea)"
+                  balance={balance}
+                  gameState={gameState}
+                  currentMultiplier={currentMultiplier}
+                  currentBet={bet2}
+                  onPlaceBet={handlePlaceBet}
+                  onCancelBet={handleCancelBet}
+                  onCashout={handleCashout}
+                  onQueueNextBet={(idx, amt, auto) => {
+                    if (balance <= 0 || balance < amt) {
+                      setIsRechargeModalOpen(true);
+                      return;
+                    }
+                    setQueuedBet2({ amount: amt, autoCashout: auto });
+                  }}
+                  isNextBetQueued={Boolean(queuedBet2)}
+                  onCancelQueuedBet={() => setQueuedBet2(null)}
+                />
+              )}
+            </div>
+
+            {/* Quick Status Bar Under Betting Desk */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Status */}
               <div className="bg-slate-950/80 rounded-xl p-2.5 border border-blue-900/30 flex items-center gap-2.5">
@@ -749,55 +799,6 @@ export default function M2MFlyPage() {
                   {enableSecondPanel ? '- Aposta 2' : '+ Aposta 2'}
                 </button>
               </div>
-            </div>
-
-            {/* BOTÕES DE APOSTAR POSICIONADOS EXATAMENTE ABAIXO DA TELA DO VOO DO AVIÃO */}
-            <div className={`grid grid-cols-1 ${enableSecondPanel ? 'md:grid-cols-2' : 'grid-cols-1'} gap-3 mt-0.5`}>
-              {/* Main Bet Panel 1 */}
-              <BettingPanel
-                panelIndex={1}
-                title="Aposta 1"
-                balance={balance}
-                gameState={gameState}
-                currentMultiplier={currentMultiplier}
-                currentBet={bet1}
-                onPlaceBet={handlePlaceBet}
-                onCancelBet={handleCancelBet}
-                onCashout={handleCashout}
-                onQueueNextBet={(idx, amt, auto) => {
-                  if (balance <= 0 || balance < amt) {
-                    setIsRechargeModalOpen(true);
-                    return;
-                  }
-                  setQueuedBet1({ amount: amt, autoCashout: auto });
-                }}
-                isNextBetQueued={Boolean(queuedBet1)}
-                onCancelQueuedBet={() => setQueuedBet1(null)}
-              />
-
-              {/* Optional Bet Panel 2 (just like standard Aviator) */}
-              {enableSecondPanel && (
-                <BettingPanel
-                  panelIndex={2}
-                  title="Aposta 2 (Simultânea)"
-                  balance={balance}
-                  gameState={gameState}
-                  currentMultiplier={currentMultiplier}
-                  currentBet={bet2}
-                  onPlaceBet={handlePlaceBet}
-                  onCancelBet={handleCancelBet}
-                  onCashout={handleCashout}
-                  onQueueNextBet={(idx, amt, auto) => {
-                    if (balance <= 0 || balance < amt) {
-                      setIsRechargeModalOpen(true);
-                      return;
-                    }
-                    setQueuedBet2({ amount: amt, autoCashout: auto });
-                  }}
-                  isNextBetQueued={Boolean(queuedBet2)}
-                  onCancelQueuedBet={() => setQueuedBet2(null)}
-                />
-              )}
             </div>
           </div>
 

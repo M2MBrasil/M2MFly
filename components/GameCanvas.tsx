@@ -466,7 +466,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     <div
       ref={containerRef}
       id="m2mfly-canvas-container"
-      className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden border border-blue-900/40 shadow-[0_0_50px_rgba(15,23,42,0.8)] bg-slate-950 flex items-center justify-center select-none"
+      className="relative w-full h-[250px] sm:h-[340px] md:h-[420px] rounded-2xl overflow-hidden border border-blue-900/40 shadow-[0_0_50px_rgba(15,23,42,0.8)] bg-slate-950 flex items-center justify-center select-none"
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 

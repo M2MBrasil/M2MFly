@@ -103,7 +103,7 @@ export const BettingPanel: React.FC<BettingPanelProps> = ({
   return (
     <div
       id={`betting-panel-${panelIndex}`}
-      className="bg-slate-950/85 backdrop-blur-md rounded-2xl p-4 border border-blue-900/40 shadow-[0_4px_25px_rgba(3,10,24,0.7)] flex flex-col gap-3.5 relative overflow-hidden"
+      className="bg-slate-950/85 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 border border-blue-900/40 shadow-[0_4px_25px_rgba(3,10,24,0.7)] flex flex-col gap-3 relative overflow-hidden"
     >
       {/* Top subtle blue highlight line */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-700 via-cyan-400 to-blue-700" />
@@ -122,7 +122,73 @@ export const BettingPanel: React.FC<BettingPanelProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* 🚀 BOTÃO APOSTAR / RETIRAR ACIMA DE TODAS AS OUTRAS INFORMAÇÕES - LOGO ABAIXO DO QUADRO DO AVIÃO */}
+      <div className="w-full">
+        {hasActiveBetInFlight ? (
+          /* ACTIVE FLIGHT WITH BET -> TRANSFORMED INTO RETIRAR BUTTON! */
+          <button
+            id={`btn-cashout-${panelIndex}`}
+            type="button"
+            onClick={handleUnifiedButtonClick}
+            className="w-full py-4 px-6 rounded-xl font-black text-lg sm:text-xl tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_35px_rgba(14,165,233,0.7)] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-white flex flex-col items-center justify-center border border-cyan-300/80 animate-pulse"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-white fill-white animate-bounce" />
+              <span>RETIRAR</span>
+            </div>
+            <span className="text-sm font-mono font-bold tracking-normal opacity-95">
+              R$ {liveCashoutVal.toFixed(2)} ({currentMultiplier.toFixed(2)}x)
+            </span>
+          </button>
+        ) : hasPlacedBetInWaiting ? (
+          /* BET PLACED DURING WAITING -> CANCEL OR CONFIRMED */
+          <button
+            id={`btn-cancel-bet-${panelIndex}`}
+            type="button"
+            onClick={handleUnifiedButtonClick}
+            className="w-full py-3.5 px-6 rounded-xl font-bold text-sm sm:text-base tracking-wide uppercase cursor-pointer transition-all bg-gradient-to-r from-red-950 via-red-900 to-red-950 hover:from-red-900 hover:to-red-800 text-red-200 border border-red-700/50 shadow-lg flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>CANCELAR APOSTA (R$ {amount.toFixed(2)})</span>
+          </button>
+        ) : isNextBetQueued ? (
+          /* BET QUEUED FOR NEXT ROUND */
+          <button
+            id={`btn-cancel-queued-${panelIndex}`}
+            type="button"
+            onClick={handleUnifiedButtonClick}
+            className="w-full py-3.5 px-6 rounded-xl font-bold text-sm sm:text-base tracking-wide uppercase cursor-pointer transition-all bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-lg flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+            <span>APOSTA AGENDADA (R$ {amount.toFixed(2)}) - CANCELAR</span>
+          </button>
+        ) : gameState === 'FLYING' || gameState === 'CRASHED' ? (
+          /* CURRENTLY FLYING OR CRASHED (NO CURRENT BET) -> BET FOR NEXT ROUND */
+          <button
+            id={`btn-queue-bet-${panelIndex}`}
+            type="button"
+            onClick={handleUnifiedButtonClick}
+            className="w-full py-3.5 sm:py-4 px-6 rounded-xl font-extrabold text-base sm:text-lg tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_20px_rgba(37,99,235,0.4)] bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:from-blue-600 hover:to-cyan-500 text-white flex items-center justify-center gap-2 border border-blue-400/40"
+          >
+            <Send className="w-4 h-4" />
+            <span>APOSTAR P/ PRÓXIMA (R$ {amount.toFixed(2)})</span>
+          </button>
+        ) : (
+          /* WAITING / STARTING PHASE -> PLACE BET */
+          <button
+            id={`btn-place-bet-${panelIndex}`}
+            type="button"
+            onClick={handleUnifiedButtonClick}
+            className="w-full py-3.5 sm:py-4 px-6 rounded-xl font-black text-base sm:text-lg tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_30px_rgba(37,99,235,0.55)] bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-400 text-white flex items-center justify-center gap-2.5 border border-cyan-400/50"
+          >
+            <Send className="w-5 h-5" />
+            <span>APOSTAR (R$ {amount.toFixed(2)})</span>
+          </button>
+        )}
+      </div>
+
+      {/* DEMAIS CONFIGURAÇÕES DA APOSTA: VALOR E AUTO RETIRADA ABAIXO DO BOTÃO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-blue-900/30">
         {/* Left Column: Aposta Input & Chips */}
         <div className="flex flex-col gap-2">
           <label className="text-xs text-blue-300/80 font-medium flex justify-between">
@@ -141,7 +207,7 @@ export const BettingPanel: React.FC<BettingPanelProps> = ({
               disabled={hasPlacedBetInWaiting || hasActiveBetInFlight}
               value={amount}
               onChange={(e) => handleAmountChange(parseFloat(e.target.value))}
-              className="w-full pl-9 pr-24 py-2.5 rounded-xl bg-slate-900/90 border border-blue-900/50 text-white font-mono font-bold text-base focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40 disabled:opacity-60 transition"
+              className="w-full pl-9 pr-24 py-2 rounded-xl bg-slate-900/90 border border-blue-900/50 text-white font-mono font-bold text-sm sm:text-base focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40 disabled:opacity-60 transition"
             />
             <div className="absolute right-1.5 flex items-center gap-1">
               <button
@@ -213,7 +279,7 @@ export const BettingPanel: React.FC<BettingPanelProps> = ({
               value={autoCashout}
               onChange={(e) => handleAutoCashoutChange(parseFloat(e.target.value))}
               placeholder="0.00"
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-900/90 border border-blue-900/50 text-white font-mono font-bold text-base focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40 disabled:opacity-60 transition"
+              className="w-full px-3 py-2 rounded-xl bg-slate-900/90 border border-blue-900/50 text-white font-mono font-bold text-sm sm:text-base focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40 disabled:opacity-60 transition"
             />
             <span className="absolute right-3 text-cyan-400 font-bold font-mono text-sm">
               x
@@ -252,71 +318,6 @@ export const BettingPanel: React.FC<BettingPanelProps> = ({
             ))}
           </div>
         </div>
-      </div>
-
-      {/* UNIFIED BUTTON: O botão que aposta, também se transforma em retirada! */}
-      <div className="mt-1">
-        {hasActiveBetInFlight ? (
-          /* ACTIVE FLIGHT WITH BET -> TRANSFORMED INTO RETIRAR BUTTON! */
-          <button
-            id={`btn-cashout-${panelIndex}`}
-            type="button"
-            onClick={handleUnifiedButtonClick}
-            className="w-full py-4 px-6 rounded-xl font-black text-lg tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_30px_rgba(14,165,233,0.6)] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-white flex flex-col items-center justify-center border border-cyan-300/80 animate-pulse"
-          >
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-white fill-white animate-bounce" />
-              <span>RETIRAR</span>
-            </div>
-            <span className="text-sm font-mono font-bold tracking-normal opacity-95">
-              R$ {liveCashoutVal.toFixed(2)} ({currentMultiplier.toFixed(2)}x)
-            </span>
-          </button>
-        ) : hasPlacedBetInWaiting ? (
-          /* BET PLACED DURING WAITING -> CANCEL OR CONFIRMED */
-          <button
-            id={`btn-cancel-bet-${panelIndex}`}
-            type="button"
-            onClick={handleUnifiedButtonClick}
-            className="w-full py-3.5 px-6 rounded-xl font-bold text-base tracking-wide uppercase cursor-pointer transition-all bg-gradient-to-r from-red-950 via-red-900 to-red-950 hover:from-red-900 hover:to-red-800 text-red-200 border border-red-700/50 shadow-lg flex items-center justify-center gap-2"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>CANCELAR APOSTA (R$ {amount.toFixed(2)})</span>
-          </button>
-        ) : isNextBetQueued ? (
-          /* BET QUEUED FOR NEXT ROUND */
-          <button
-            id={`btn-cancel-queued-${panelIndex}`}
-            type="button"
-            onClick={handleUnifiedButtonClick}
-            className="w-full py-3.5 px-6 rounded-xl font-bold text-base tracking-wide uppercase cursor-pointer transition-all bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-lg flex items-center justify-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-            <span>APOSTA AGENDADA (R$ {amount.toFixed(2)}) - CANCELAR</span>
-          </button>
-        ) : gameState === 'FLYING' || gameState === 'CRASHED' ? (
-          /* CURRENTLY FLYING OR CRASHED (NO CURRENT BET) -> BET FOR NEXT ROUND */
-          <button
-            id={`btn-queue-bet-${panelIndex}`}
-            type="button"
-            onClick={handleUnifiedButtonClick}
-            className="w-full py-3.5 px-6 rounded-xl font-extrabold text-base tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_20px_rgba(37,99,235,0.4)] bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:from-blue-600 hover:to-cyan-500 text-white flex items-center justify-center gap-2 border border-blue-400/40"
-          >
-            <Send className="w-4 h-4" />
-            <span>APOSTAR P/ PRÓXIMA (R$ {amount.toFixed(2)})</span>
-          </button>
-        ) : (
-          /* WAITING / STARTING PHASE -> PLACE BET */
-          <button
-            id={`btn-place-bet-${panelIndex}`}
-            type="button"
-            onClick={handleUnifiedButtonClick}
-            className="w-full py-3.5 px-6 rounded-xl font-black text-base tracking-wide uppercase cursor-pointer transition-all duration-150 transform active:scale-[0.98] shadow-[0_0_25px_rgba(37,99,235,0.5)] bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-400 text-white flex items-center justify-center gap-2.5 border border-cyan-400/50"
-          >
-            <Send className="w-5 h-5" />
-            <span>APOSTAR (R$ {amount.toFixed(2)})</span>
-          </button>
-        )}
       </div>
     </div>
   );
